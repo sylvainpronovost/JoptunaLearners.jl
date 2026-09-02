@@ -1,0 +1,105 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: joptunalearners-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  publication-audit:
+    name: Publication content and history audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+      - uses: julia-actions/setup-julia@fa02766e078afaaf09b14210362cee14137e6a32
+        with:
+          version: '1.12'
+      - run: julia --startup-file=no tools/publication_audit.jl --self-test --history
+
+  core:
+    name: Julia 1.12 core and purity
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: julia-actions/setup-julia@fa02766e078afaaf09b14210362cee14137e6a32
+        with:
+          version: '1.12'
+      - uses: julia-actions/cache@a7bed9df697e5d7309d68afe7542a87621a8b6c8
+      - name: Run core, checkpoint, and runtime-purity tests
+        run: julia --project=. --startup-file=no --depwarn=error -e 'using Pkg; Pkg.test()'
+
+  ecosystem:
+    name: LearnAPI, MLJ, and Flux
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: julia-actions/setup-julia@fa02766e078afaaf09b14210362cee14137e6a32
+        with:
+          version: '1.12'
+      - uses: julia-actions/cache@a7bed9df697e5d7309d68afe7542a87621a8b6c8
+      - name: Install the General registry
+        run: julia --startup-file=no -e 'using Pkg; Pkg.Registry.add("General")'
+      - name: Run ecosystem contracts in isolated environments
+        run: |
+          julia --project=test/learnapi --startup-file=no -e 'using Pkg; Pkg.resolve(); Pkg.instantiate(); include("test/learnapi/runtests.jl")'
+          julia --project=test/mlj --startup-file=no -e 'using Pkg; Pkg.resolve(); Pkg.instantiate(); include("test/mlj/runtests.jl")'
+          julia --project=test/flux --startup-file=no -e 'using Pkg; Pkg.resolve(); Pkg.instantiate(); include("test/flux/runtests.jl")'
+
+  reactant-cpu:
+    name: Reactant CPU DLinear gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      JOPTUNALEARNERS_TEST_REACTANT: 'true'
+      JOPTUNALEARNERS_QUALIFY_MODEL_ZOO: 'true'
+      JOPTUNALEARNERS_QUALIFY_LIFECYCLE: 'true'
+      JOPTUNALEARNERS_MODELS: window_dlinear
+      JULIA_NUM_THREADS: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: julia-actions/setup-julia@fa02766e078afaaf09b14210362cee14137e6a32
+        with:
+          version: '1.12'
+      - uses: julia-actions/cache@a7bed9df697e5d7309d68afe7542a87621a8b6c8
+      - name: Run bounded Reactant correctness and lifecycle gate
+        run: >-
+          julia --project=test/reactant --startup-file=no -e 'using Pkg;
+          Pkg.instantiate(); include("test/accelerators/runtests.jl")'
+
+  docs:
+    name: Strict documentation
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: julia-actions/setup-julia@fa02766e078afaaf09b14210362cee14137e6a32
+        with:
+          version: '1.12'
+      - uses: julia-actions/cache@a7bed9df697e5d7309d68afe7542a87621a8b6c8
+      - name: Build warning-free documentation
+        run: julia --project=docs --startup-file=no -e 'using Pkg; Pkg.instantiate(); include("docs/make.jl")'
+
+  required-qualification:
+    name: Required qualification
+    if: always()
+    needs: [publication-audit, core, ecosystem, reactant-cpu, docs]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require every blocking job
+        env:
+          BLOCKING_RESULTS: ${{ toJSON(needs) }}
+        run: jq -e 'all(.[]; .result == "success")' <<<"$BLOCKING_RESULTS"

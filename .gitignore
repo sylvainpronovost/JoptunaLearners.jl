@@ -1,0 +1,13 @@
+/Manifest.toml
+/docs/Manifest.toml
+/docs/build/
+/test/*/Manifest.toml
+/docs/build/
+/coverage/
+/benchmark/execution_backends/results/
+/test/accelerators/*.log
+/test/accelerators/*-supervisor.tsv
+*.jld2
+*.arrow
+*.sqlite3
+.DS_Store
