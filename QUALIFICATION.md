@@ -1,5 +1,8 @@
 # Qualification and distribution status
 
+Start with the [current coordinated stack status](../Joptuna.jl/docs/src/current-status.md).
+Earlier sections below remain dated evidence, not certification of a later dependency pin.
+
 This is a local, unregistered reconstruction; no hosted run for this repository is claimed.
 Historical benchmark/campaign files and abbreviated revision identifiers are retained as
 inherited evidence, not current-source certification or checkout instructions. Historical
