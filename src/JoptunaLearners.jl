@@ -43,6 +43,7 @@ export LearnerData, CausalWindowSource, PredictionSurface, LuxLearner, FluxLearn
 export fit, predict, training_report, save_checkpoint, load_checkpoint
 export model_spec, model_specs, model_config, hyperparameter_schema, build_model
 export prepare_tabular, prepare_windows, fit_normalizer, apply_normalizer
+export EntityEncoder, fit_entity_encoder, encode_entities
 export rank_blend, fit_simplex_rank_stack, apply_rank_stack
 export make_residual_targets, apply_residual_correction
 export assert_contract, contract_digest, audit_runtime_purity

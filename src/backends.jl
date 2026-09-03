@@ -80,10 +80,10 @@ function backend_capabilities(backend::ExecutionBackend, model)
     if spec.name === :window_dlinear
         if backend isa ReactantCPU
             return merge(base, (;
-                performance_qualified=true,
-                recommended=true,
+                performance_qualified=false,
+                recommended=false,
                 qualification=:dlinear_reference_m5_max,
-                qualification_result=:pass,
+                qualification_result=:historical_unverified,
                 performance_reason=:compiled_update_throughput,
             ))
         elseif backend isa MetalGPU
@@ -91,7 +91,7 @@ function backend_capabilities(backend::ExecutionBackend, model)
                 performance_qualified=false,
                 recommended=false,
                 qualification=:dlinear_reference_m5_max,
-                qualification_result=:correct_but_slower,
+                qualification_result=:historical_unverified,
                 performance_reason=:device_launch_bound,
             ))
         end
@@ -103,16 +103,16 @@ function backend_capabilities(backend::ExecutionBackend, model)
     end
     if spec.name === :patchtst && backend isa MetalGPU
         return merge(base, (;
-            performance_qualified=true,
-            recommended=true,
+            performance_qualified=false,
+            recommended=false,
             qualification=:patchtst_large_batch_m5_max,
-            qualification_result=:pass,
+            qualification_result=:historical_unverified,
             performance_reason=:large_batch_attention_throughput,
         ))
     end
     merge(base, (;
         qualification=:synthetic_model_zoo,
-        qualification_result=:compatibility_only,
+        qualification_result=:unverified,
         performance_reason=:representative_workload_required,
     ))
 end

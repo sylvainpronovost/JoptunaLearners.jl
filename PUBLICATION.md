@@ -33,13 +33,13 @@ grant is part of this increment.
 
 - MLJ model: `JoptunaRegressor`; `mlj_model` remains its factory.
 - Prediction vector and exported table column: `prediction`.
-- Validation defaults: `prediction`, `target`, and grouping by `row_id`.
+- Validation defaults: `prediction`, `target`, and no grouping (`()`).
 - Entity conditioning: `uses_entity`, `entity_codes`, and `entity_vocabulary`.
-- Hybrid row keys: `group_id`, `entity_id`, `fold_id`; rank groups use `group_id`.
+- Hybrid row keys: required caller-supplied `key_cols`; rank groups are optional.
 - Residual scale labels: `target_scale` and `target_scale_residual`.
 
 Applications may supply their own explicit column/grouping contracts. No business metric or
 dataset is built into these defaults. All learner regression fixtures are synthetic.
-Checkpoint schemas advance to fitted-model format 3 and resumable-training format 4;
+Checkpoint schemas advance to fitted-model format 5 and resumable-training format 6;
 older layouts are not silently treated as compatible. Retrain or explicitly migrate before
 using a checkpoint created against a previous layout.

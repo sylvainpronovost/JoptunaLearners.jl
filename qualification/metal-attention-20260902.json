@@ -1,0 +1,205 @@
+{
+    "tests": {
+        "evotrees_native_metal": 431,
+        "evotrees_integration_metal": 102,
+        "metal_mlj_tuning": 7,
+        "metal_native_resources_success_and_exceptions": 12,
+        "metal_model_zoo_and_controls": 206,
+        "metal_mlj": 34,
+        "learner_core": 319,
+        "evotrees_cpu": 516,
+        "original_evotrees_probe": 12,
+        "reactant_attention_and_controls": 36
+    },
+    "package_versions": {
+        "GPUArrays": "11.5.13",
+        "Zygote": "0.7.13",
+        "NNlib": "0.9.45",
+        "Reactant": "0.2.284",
+        "Metal": "1.10.0",
+        "Enzyme": "0.13.199",
+        "Lux": "1.31.4",
+        "Optimisers": "0.4.9"
+    },
+    "eager_cpu": {
+        "schema_version": 2,
+        "backend": "eager_cpu",
+        "model": "patchtst",
+        "model_config": {
+            "patch_len": 16,
+            "stride": 8,
+            "hidden_dim": 128,
+            "depth": 4,
+            "n_heads": 8,
+            "dropout": 0
+        },
+        "observations": 4096,
+        "features": 16,
+        "lookback": 128,
+        "batch_size": 2048,
+        "seed": 191,
+        "heap_size_hint_bytes": 3221225472,
+        "timing_scope": "fit_cycles_excluding_startup_and_data_preparation",
+        "epochs": 2,
+        "repetitions": 3,
+        "cold_seconds": 43.834996125,
+        "cold_allocated_bytes": 41006946944,
+        "cold_gc_seconds": 10.634141165,
+        "steady_state_seconds": 21.79708375,
+        "steady_state_allocated_bytes": 34859910640,
+        "steady_state_gc_seconds": 9.658755333,
+        "process_total_seconds": 118.807751667,
+        "managed_live_bytes": [
+            207191440,
+            208241552,
+            208274848,
+            208308240
+        ],
+        "warm_shape_growth_bytes": 66688,
+        "process_peak_rss_bytes": 5653299200,
+        "device_allocated_bytes": 0,
+        "device_allocated_after_fit_bytes": [
+            0,
+            0,
+            0,
+            0
+        ],
+        "device_memory_scope": "driver allocations at synchronized post-GC boundaries, not peak RSS",
+        "execution_provenance": {
+            "execution_backend": "eager_cpu",
+            "device": "cpu",
+            "compiled": false,
+            "fallback": "error",
+            "report": {
+                "package": "JoptunaLearners.jl",
+                "backend": "Lux",
+                "julia": "1.12.7",
+                "execution": {
+                    "execution_backend": "eager_cpu",
+                    "device": "cpu",
+                    "compiled": false,
+                    "fallback": "error"
+                },
+                "execution_metrics": {
+                    "setup_seconds": 0.002025459,
+                    "first_update_seconds": 4.318454625,
+                    "steady_state_update_seconds": 4.425046375,
+                    "update_count": 4,
+                    "total_fit_seconds": 21.70349407196045
+                },
+                "model": "PatchTSTLite",
+                "contract_digest": "5a96ab051b1dd68f18c598185d8781c03e1fcaa539d74526a47c038fef2d9815",
+                "seed": 191,
+                "context": {
+                }
+            }
+        },
+        "prediction_digest": "3f182afb3fe7939ec4defacf9078b1293984aa59d06b25158fdbb0e364b162fb",
+        "julia_version": "1.12.7"
+    },
+    "environment_manifest_sha256": {
+        "accelerators": "612ba1dc0715cd5adbbbdf16d85aebfb6f3b40fcd8e8833d90749f666ed0f1b5",
+        "evotrees": "d274b08819410073a1c280435bdf5993d30b438779461d3b2f39f0599ad8af09"
+    },
+    "recorded_at": "2026-09-02T20:52:21.044",
+    "qualification_digests": {
+        "learner_benchmarks": "ff00d10bd92df686ae906a75edc4e9fae8136cd9a41993902b7f65a0b54dc427",
+        "learner_tests": "db281fd55c6bcbc8e423b3b3d2ecbf126cba164cc24d466ed1b8b2a239eaf6ed",
+        "integration_tests": "d1653cb853ca59917f3d0970ee1bf6cd6dd1df8b8c40d60b8429f43c559b70bf",
+        "evotrees_tests": "f6b3fe5b4b238ee9c6417186146cf48f0924d2973b8d2221f029edf29eb5b1e7"
+    },
+    "julia_version": "1.12.7",
+    "status": "fresh local qualification of dirty working trees; not hosted CI",
+    "blas_threads": 1,
+    "prediction_max_abs_error": 1.3113022e-6,
+    "julia_threads": 2,
+    "metal_gpu": {
+        "schema_version": 2,
+        "backend": "metal_gpu",
+        "model": "patchtst",
+        "model_config": {
+            "patch_len": 16,
+            "stride": 8,
+            "hidden_dim": 128,
+            "depth": 4,
+            "n_heads": 8,
+            "dropout": 0
+        },
+        "observations": 4096,
+        "features": 16,
+        "lookback": 128,
+        "batch_size": 2048,
+        "seed": 191,
+        "heap_size_hint_bytes": 3221225472,
+        "timing_scope": "fit_cycles_excluding_startup_and_data_preparation",
+        "epochs": 2,
+        "repetitions": 3,
+        "cold_seconds": 60.956665959,
+        "cold_allocated_bytes": 21240691744,
+        "cold_gc_seconds": 1.477486789,
+        "steady_state_seconds": 1.202374459,
+        "steady_state_allocated_bytes": 86422720,
+        "steady_state_gc_seconds": 0,
+        "process_total_seconds": 68.491553416,
+        "managed_live_bytes": [
+            243002672,
+            243269024,
+            243302320,
+            243335696
+        ],
+        "warm_shape_growth_bytes": 66672,
+        "process_peak_rss_bytes": 1946173440,
+        "device_allocated_bytes": 4931584,
+        "device_allocated_after_fit_bytes": [
+            4931584,
+            4931584,
+            4931584,
+            4931584
+        ],
+        "device_memory_scope": "driver allocations at synchronized post-GC boundaries, not peak RSS",
+        "execution_provenance": {
+            "execution_backend": "metal_gpu",
+            "device": "metal",
+            "compiled": false,
+            "ad": "Zygote",
+            "metal": "1.10.0",
+            "precision": "Float32",
+            "fallback": "error",
+            "report": {
+                "package": "JoptunaLearners.jl",
+                "backend": "Lux",
+                "julia": "1.12.7",
+                "execution": {
+                    "execution_backend": "metal_gpu",
+                    "device": "metal",
+                    "compiled": false,
+                    "ad": "Zygote",
+                    "metal": "1.10.0",
+                    "precision": "Float32",
+                    "fallback": "error"
+                },
+                "execution_metrics": {
+                    "setup_seconds": 0.017699542,
+                    "first_update_seconds": 0.436366,
+                    "steady_state_update_seconds": 0.1623499895,
+                    "update_count": 4,
+                    "total_fit_seconds": 1.219048023223877
+                },
+                "model": "PatchTSTLite",
+                "contract_digest": "5a96ab051b1dd68f18c598185d8781c03e1fcaa539d74526a47c038fef2d9815",
+                "seed": 191,
+                "context": {
+                }
+            }
+        },
+        "prediction_digest": "e3fbdcb42964b58ca79b62cd2b12a1d7d7bada588bf1ff37671cdf2b19ca6536",
+        "julia_version": "1.12.7"
+    },
+    "schema_version": 1,
+    "source_digests": {
+        "EvoTrees": "8405187ba8c2d7352d6ee828a2834215cb93973db7a406b66810d0c3e9cc543c",
+        "JoptunaIntegrations": "bd3f150ecc661b483b7396b4eb0ec51ccd4c7bfcf9747c434b2adcbc99a50d55",
+        "JoptunaLearners": "d53b678fe12c0065659b250044ed8c7d5062561ea9098fa733f0abaed328070d"
+    },
+    "hardware": "Apple M5 Max, macOS arm64, 128 GiB physical memory"
+}

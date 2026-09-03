@@ -139,17 +139,24 @@ function _multihead_attention(query, source, p, n_heads::Int;
     hidden % n_heads == 0 || throw(ArgumentError("hidden_dim must be divisible by n_heads"))
     width = hidden ÷ n_heads
     q, k, v = _sequence_linear(query, p.q), _sequence_linear(source, p.k), _sequence_linear(source, p.v)
-    per_head = ntuple(n_heads) do head
-        rows = (head - 1) * width + 1:head * width
-        qh, kh, vh = q[rows, :, :], k[rows, :, :], v[rows, :, :]
-        contexts = ntuple(n_query) do position
-            score = dropdims(sum(reshape(qh[:, position, :], width, 1, :) .* kh; dims=1); dims=1) ./ sqrt(Float32(width))
-            weights = NNlib.softmax(score; dims=1)
-            reshape(dropdims(sum(vh .* reshape(weights, 1, n_source, :); dims=2); dims=2), width, 1, :)
-        end
-        cat(contexts...; dims=2)
-    end
-    _sequence_linear(cat(per_head...; dims=1), p.out)
+    # Fuse head and observation axes into NNlib's batched-matrix dimension.
+    # Query-wise broadcasts retain width × source × batch intermediates for every
+    # query on the reverse-mode tape. GEMMs instead retain compact attention
+    # matrices, without changing the batch, normalization axis or model semantics.
+    batch = size(query, 3)
+    heads(x, tokens) = reshape(
+        permutedims(reshape(x, width, n_heads, tokens, batch), (1, 3, 2, 4)),
+        width, tokens, n_heads * batch,
+    )
+    qh, kh, vh = heads(q, n_query), heads(k, n_source), heads(v, n_source)
+    scores = NNlib.batched_mul(NNlib.batched_transpose(kh), qh) ./ sqrt(Float32(width))
+    weights = NNlib.softmax(scores; dims=1)
+    contexts = NNlib.batched_mul(vh, weights)
+    joined = reshape(
+        permutedims(reshape(contexts, width, n_query, n_heads, batch), (1, 3, 2, 4)),
+        hidden, n_query, batch,
+    )
+    _sequence_linear(joined, p.out)
 end
 
 function _transformer_block(x, p, n_heads, n_tokens)

@@ -4,14 +4,21 @@
 
 The application supplies held-out validation data and a canonical evaluator:
 
-```julia
+```@example training_pruning
+using JoptunaLearners, Random
+rng = MersenneTwister(7)
+windows = randn(rng, Float32, 2, 9, 24)
+data = LearnerData(windows[:, end, :], vec(windows[1, end, :]); windows)
+train_data, validation_data = data[1:16], data[17:24]
+events = TrainingEvent[]
+callback = event -> push!(events, event)
 contract = ValidationSpec(
     :mse,
-    (prediction, heldout) -> sum(abs2, prediction .- heldout.y) / length(prediction);
+    (prediction, heldout) -> sum(abs2, prediction .- heldout.target) / length(prediction);
     direction=:minimize,
     prediction=:prediction,
     target=:target,
-    grouping=(:row,),
+    grouping=(), metric_id="example/mse", metric_version="1",
 )
 
 learner = LuxLearner(
@@ -19,10 +26,13 @@ learner = LuxLearner(
     validation=contract,
     kernel_size=5,
     training=TrainingSpec(
-        epochs=40, minimum_epochs=5, patience=5, restore_best=true,
+        epochs=2, minimum_epochs=1, patience=1, batch_size=8, restore_best=true,
     ),
 )
 fitted = fit(learner, train_data; validation_data=validation_data, callbacks=(callback,))
+@assert !isempty(events)
+@assert all(event -> event.contract_digest == contract.digest, events)
+training_report(fitted).completed_epochs
 ```
 
 Every `TrainingEvent` contains the validation-contract digest. The optional
@@ -38,6 +48,25 @@ with early stopping, restoration, and pruning disabled when no separate selectio
 For a user-owned Lux architecture, provide a builder receiving a named tuple with `n_features`,
 `lookback`, `n_entities`, and `config`. JoptunaLearners still owns the qualified training lifecycle;
 the application owns the meaning and provenance of its data and validation contract.
+
+## Reuse the training entity vocabulary
+
+```@example entity_encoder
+using JoptunaLearners, DataFrames
+table = DataFrame(entity=repeat(["A", "B"], inner=3), time=repeat(1:3, 2),
+                  feature=Float32.(1:6), target=ones(Float32, 6))
+settings = (; feature_cols=[:feature], target_col=:target, entity_col=:entity,
+             order_col=:time, lookback=2)
+training = prepare_windows(table; settings...)
+validation = prepare_windows(table[4:6, :]; settings...,
+                             entity_encoder=training.entity_encoder)
+@assert validation.data.entity_codes == [2, 2]
+validation.entity_vocabulary
+```
+
+An omitted encoder fits a new vocabulary and is only appropriate for training preparation.
+Persist `training.entity_encoder` in application preprocessing/checkpoint context and reuse it
+for validation and inference. Unknown entities fail explicitly; no embedding index is guessed.
 
 When `checkpoint_every > 0`, snapshots include parameters, Lux state, optimizer state, shuffle
 RNG, batch ordering, event history, best state, and digests for the learner, data, and validation

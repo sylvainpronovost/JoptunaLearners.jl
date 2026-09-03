@@ -37,5 +37,27 @@ arrays, never compiled executables or device arrays.
 
 Use `execution_backend(fitted)`, `backend_capabilities(backend, model)`, and
 `execution_provenance(fitted)` for diagnostics. `require_performance_qualified` is a fail-closed
-deployment gate. A performance record should always name the model, workload, hardware, package
-lock, numerical tolerance, and timing protocol.
+deployment gate. Historical accelerator records now return `performance_qualified=false`,
+`recommended=false` and `qualification_result=:historical_unverified`. No accelerator is
+currently promoted by this API. Eager CPU remains the reference, not a measured speedup claim.
+A future performance record must bind the current source, model, workload, hardware, package
+lock, numerical tolerance, and timing protocol before this gate can be promoted.
+
+## Attention and fit-local memory
+
+PatchTSTLite and TFTLite use NNlib batched matrix products for multi-head attention.
+Small independent reference tests compare forward values and full gradients, including
+cross-attention with different query/source lengths. This replaces a query-by-query
+reverse-mode allocation pattern without changing the attention normalization or architecture.
+
+The Metal extension bounds native autoreleased command-object lifetimes around each training
+batch and prediction call, outside the AD region, including exception exits. Julia GC alone
+does not drain native autorelease pools. A small batched-matrix reproducer demonstrated the
+retention independently of Lux training; explicit Lux-cache cleanup alone did not solve it.
+No fitted-array copy or manual Lux-cache invalidation is needed. Checkpoint conversion remains
+a separate host boundary. Accelerator tests track driver allocation as well as managed memory;
+process RSS alone does not measure all Apple unified-memory consumption.
+
+The benchmark supervisor defaults to a 6 GiB RSS ceiling and a smaller 3 GiB Julia heap hint,
+with process-group cleanup. Neither number is a hard GPU-memory budget. See the execution
+benchmark README and the repository qualification report for exact workload-specific results.

@@ -2,10 +2,10 @@
 
 The MLJ entry point is `JoptunaRegressor` (or the `mlj_model` factory). Native
 predictions expose a `prediction` vector, and `DataFrame(surface)` exports that
-column alongside application-provided row keys. Validation defaults use `target`
-and `row_id`; entity-conditioned models use `entity_codes`. Hybrid helpers default
-to `group_id`, `entity_id`, and `fold_id` keys, with `target_scale` residuals.
-All of these grouping/column contracts can be supplied explicitly by the caller.
+column alongside application-provided row keys, scale and provenance. Validation defaults use
+`target` and no grouping; entity-conditioned models use training-fitted `entity_codes`.
+Hybrid helpers require explicit `key_cols`; `group_cols=()` ranks the whole surface.
+Residual scales describe units, not an application domain.
 
 ## Small synthetic training example
 
@@ -42,8 +42,8 @@ application artifacts.
 3. JoptunaIntegrations can report the same value and digest to an active Joptuna trial.
 4. Promotion and final reporting can reject a digest mismatch.
 
-This prevents early stopping, pruning, and final evaluation from silently using different metrics,
-targets, groupings, or optimization directions.
+This detects disagreement in declared contracts. It does not inspect evaluator code or prove
+that an evaluator accesses the declared target or implements the declared grouping correctly.
 
 See [architecture ledger](model-ledger.md), [ownership and contracts](ownership.md),
 [training and pruning](training-and-pruning.md), [execution backends](execution-backends.md), and

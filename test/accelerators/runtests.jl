@@ -9,6 +9,8 @@ using Lux
 using Statistics
 using Test
 
+TEST_METAL && include("metal_native_memory.jl")
+
 function dlinear_fixture(backend; epochs=2, batch_size=8)
     observations = 24
     lookback = 9
@@ -156,10 +158,20 @@ if get(ENV, "JOPTUNALEARNERS_QUALIFY_MODEL_ZOO", "false") == "true"
                 end
                 if get(ENV, "JOPTUNALEARNERS_QUALIFY_MEMORY", "false") == "true"
                     GC.gc(true)
+                    if TEST_METAL
+                        Metal.synchronize()
+                        GC.gc(true)
+                    end
                     live_before = Base.gc_live_bytes()
+                    device_before = TEST_METAL ? Int(Metal.device().currentAllocatedSize) : 0
                     second_replay = fit_architecture(name, backend)
                     all(isfinite, second_replay.predictions) || error("nonfinite replay")
                     GC.gc(true)
+                    if TEST_METAL
+                        Metal.synchronize()
+                        GC.gc(true)
+                        @test Int(Metal.device().currentAllocatedSize) <= device_before + 16 * 1024^2
+                    end
                     live_after = Base.gc_live_bytes()
                     @test live_after <= live_before + 16 * 1024^2
                 end

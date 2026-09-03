@@ -1,0 +1,20 @@
+{
+  "schema": "joptunalearners-local-validation/v1",
+  "evidence_status": "dated_local_execution_record_not_automatic_current_qualification",
+  "date": "2026-09-02",
+  "julia_version": "1.12.7",
+  "platform": "Apple Silicon macOS",
+  "source_test_sha256": "506242070676dbbd53aeb1f471e83faef164aee067b67b0d0c89368e0711496d",
+  "fingerprint_recipe": "Sort Project.toml and all *.jl files under src, ext, test by relative POSIX path. SHA256 the concatenation of each path, NUL, lowercase file SHA256, newline.",
+  "manifest_sha256": "1f316449e142210610c1849edd1873b7e072e9b933b3839c6d9f1d94b1a66acf",
+  "test_log_sha256": "5c8a2129d01fed11247fe2173c510a11cfcfc6fb599de6135a1ec06f6e60d3ce",
+  "command": "julia --project=. --startup-file=no test/runtests.jl",
+  "threads": 2,
+  "core_assertions_passed": 246,
+  "core_assertions_failed": 0,
+  "wall_seconds": 121.2,
+  "peak_process_group_rss_mib": 1629.4,
+  "accelerator_performance_qualified": false,
+  "hosted_qualification": false,
+  "scope": "Synthetic local CPU tests, all 14 native architecture gradient checks, training and checkpoints, generic contracts/hybrids, executable README. A later source or environment change requires revalidation. This is not a speed comparison."
+}

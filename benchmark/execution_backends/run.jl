@@ -75,15 +75,34 @@ function measured_fit()
        provenance=execution_provenance(measurement.value))
 end
 
-process_started = time_ns()
-cold = measured_fit()
-GC.gc(true)
-live = Int[Base.gc_live_bytes()]
-warm = NamedTuple[]
-for _ in 1:repetitions
-    push!(warm, measured_fit())
+function collect_memory!()
     GC.gc(true)
-    push!(live, Base.gc_live_bytes())
+    if BACKEND_NAME == "metal_gpu"
+        Metal.synchronize()
+        GC.gc(true)
+    end
+    device = BACKEND_NAME == "metal_gpu" ? Int(Metal.device().currentAllocatedSize) : 0
+    device <= 6 * 1024^3 || error("post-GC Metal allocation exceeds 6 GiB; stopping repetitions")
+    (; live=Base.gc_live_bytes(), device)
+end
+
+process_started = time_ns()
+println("backend=$BACKEND_NAME phase=cold_fit"); flush(stdout)
+cold = measured_fit()
+memory = collect_memory!()
+live = Int[memory.live]
+device_allocations = Int[memory.device]
+warm = NamedTuple[]
+for repetition in 1:repetitions
+    println("backend=$BACKEND_NAME phase=warm_fit repetition=$repetition/$repetitions"); flush(stdout)
+    push!(warm, measured_fit())
+    local warm_memory = collect_memory!()
+    push!(live, warm_memory.live)
+    push!(device_allocations, warm_memory.device)
+    if length(device_allocations) >= 3
+        maximum(device_allocations[2:end])-minimum(device_allocations[2:end]) <= 16 * 1024^2 ||
+            error("Metal driver allocations grow across warm fits; stopping repetitions")
+    end
 end
 tolerance = backend isa MetalGPU ? 5e-4 : backend isa ReactantCPU ? 1e-4 : 0.0
 all(run -> isapprox(run.prediction, first(warm).prediction;
@@ -103,11 +122,17 @@ if !isempty(prediction_output)
 end
 device_memory = BACKEND_NAME == "metal_gpu" ? Int(Metal.device().currentAllocatedSize) : 0
 record = (
-    schema_version=1,
+    schema_version=2,
     backend=BACKEND_NAME,
     model=String(model_name),
     model_config=learner.model_config,
     observations,
+    features,
+    lookback,
+    batch_size,
+    seed=training.seed,
+    heap_size_hint_bytes=Base.JLOptions().heap_size_hint,
+    timing_scope="fit_cycles_excluding_startup_and_data_preparation",
     epochs,
     repetitions,
     cold_seconds=cold.seconds,
@@ -121,6 +146,8 @@ record = (
     warm_shape_growth_bytes=warm_growth,
     process_peak_rss_bytes=Sys.maxrss(),
     device_allocated_bytes=device_memory,
+    device_allocated_after_fit_bytes=device_allocations,
+    device_memory_scope="driver allocations at synchronized post-GC boundaries, not peak RSS",
     execution_provenance=first(warm).provenance,
     prediction_digest=bytes2hex(sha256(reinterpret(UInt8, first(warm).prediction))),
     julia_version=string(VERSION),

@@ -99,14 +99,38 @@ Base.getindex(d::LearnerData, ::Colon) = d
 """Convert row-major tabular values to feature-first Float32 data."""
 prepare_tabular(x::AbstractMatrix) = permutedims(Float32.(x))
 
+"""Training-fitted, ordered entity vocabulary. Unseen entities fail explicitly."""
+struct EntityEncoder{T<:Tuple}
+    vocabulary::T
+    function EntityEncoder(values)
+        vocabulary = Tuple(values)
+        isempty(vocabulary) && throw(ArgumentError("entity vocabulary must not be empty"))
+        any(ismissing, vocabulary) && throw(ArgumentError("entity vocabulary contains missing values"))
+        allunique(vocabulary) || throw(ArgumentError("entity vocabulary contains duplicates"))
+        new{typeof(vocabulary)}(vocabulary)
+    end
+end
+
+fit_entity_encoder(values) = EntityEncoder(unique(values))
+
+function encode_entities(encoder::EntityEncoder, values)
+    mapping = Dict(value => index for (index, value) in enumerate(encoder.vocabulary))
+    map(values) do value
+        haskey(mapping, value) || throw(ArgumentError("unseen entity; reuse the training vocabulary and define new-entity handling upstream"))
+        mapping[value]
+    end
+end
+
 """
 Construct causal, entity-local windows. A row is retained only after `lookback`
 observations exist for that entity; no future row can enter a window.
+Omit `entity_encoder` only when fitting the training vocabulary. Pass the returned
+encoder when preparing validation/inference subsets. Unknown entities raise an error.
 """
 function prepare_windows(table; feature_cols, target_col::Symbol, entity_col::Symbol,
                          order_col::Symbol, lookback::Int, weight_col=nothing,
                          key_cols=(order_col, entity_col), materialization=:dense,
-                         copycols::Bool=true)
+                         copycols::Bool=true, entity_encoder::Union{Nothing,EntityEncoder}=nothing)
     lookback > 0 || throw(ArgumentError("lookback must be positive"))
     features = Symbol.(feature_cols)
     keys = collect(Symbol.(key_cols))
@@ -155,16 +179,15 @@ function prepare_windows(table; feature_cols, target_col::Symbol, entity_col::Sy
     tabular = prepare_tabular(Matrix(selected[:, features]))
     y = Float32.(selected[!, target_col])
     weights = weight_col === nothing ? ones(Float32, length(rows)) : Float32.(selected[!, weight_col])
-    entity_values = unique(df[!, entity_col])
-    entity_map = Dict(v => i for (i, v) in enumerate(entity_values))
-    entity_codes = [entity_map[v] for v in selected[!, entity_col]]
+    encoder = entity_encoder === nothing ? fit_entity_encoder(df[!, entity_col]) : entity_encoder
+    entity_codes = encode_entities(encoder, selected[!, entity_col])
     if materialization == :lazy
         windows = CausalWindowSource(
             prepare_tabular(Matrix(df[:, features])), window_starts, lookback,
         )
     end
     data = LearnerData(tabular, y; windows, entity_codes, weights, keys=selected[:, keys])
-    return (; data, entity_vocabulary=entity_values, retained_rows=rows)
+    return (; data, entity_encoder=encoder, entity_vocabulary=collect(encoder.vocabulary), retained_rows=rows)
 end
 
 function _model_input(data::LearnerData, spec::ModelSpec)
@@ -208,5 +231,7 @@ function DataFrames.DataFrame(p::PredictionSurface)
     out[!, :prediction] = p.prediction
     out[!, :model_name] = fill(String(p.model_name), nrow(out))
     out[!, :contract_digest] = fill(p.contract_digest, nrow(out))
+    out[!, :prediction_scale] = fill(String(p.scale), nrow(out))
+    out[!, :provenance] = fill(p.provenance, nrow(out))
     out
 end

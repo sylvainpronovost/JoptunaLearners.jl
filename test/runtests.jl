@@ -52,18 +52,16 @@ end
     @test !backend_capabilities(metal).performance_qualified
     @test !backend_capabilities(metal).recommended
     @test backend_capabilities(eager, :window_dlinear).qualification_result == :reference
-    @test backend_capabilities(reactant, :window_dlinear).performance_qualified
-    @test backend_capabilities(metal, :patchtst).performance_qualified
+    @test !backend_capabilities(reactant, :window_dlinear).performance_qualified
+    @test !backend_capabilities(metal, :patchtst).performance_qualified
+    @test backend_capabilities(reactant, :window_dlinear).qualification_result == :historical_unverified
+    @test backend_capabilities(metal, :patchtst).qualification_result == :historical_unverified
     @test backend_capabilities(metal, :patchtst).performance_reason ==
           :large_batch_attention_throughput
-    if backend_capabilities(metal).available
-        @test require_performance_qualified(metal, :patchtst).name == :metal_gpu
-    else
-        @test_throws ArgumentError require_performance_qualified(metal, :patchtst)
-    end
-    @test backend_capabilities(reactant, :window_dlinear).recommended
+    @test_throws ArgumentError require_performance_qualified(metal, :patchtst)
+    @test !backend_capabilities(reactant, :window_dlinear).recommended
     @test backend_capabilities(metal, :window_dlinear).qualification_result ==
-          :correct_but_slower
+          :historical_unverified
     @test backend_capabilities(metal, :window_dlinear).performance_reason ==
           :device_launch_bound
     @test require_performance_qualified(eager, :window_dlinear).name == :eager_cpu
@@ -92,7 +90,7 @@ end
     defaults=ValidationSpec(:mse,evaluator;direction=:minimize)
     @test defaults.prediction == :prediction
     @test defaults.target == :target
-    @test defaults.grouping == (:row_id,)
+    @test defaults.grouping == ()
 end
 
 @testset "Causal data and train-only normalization" begin
@@ -488,27 +486,33 @@ end
     @test all(isfinite,predict(fitted,data).prediction)
 end
 
-@testset "Hybrid alignment and leakage guards" begin
+@testset "Hybrid alignment and caller-declared OOF boundary" begin
     keys=DataFrame(group_id=repeat(1:2,inner=3),entity_id=repeat(1:3,2),fold_id=ones(Int,6))
     a=hcat(keys,DataFrame(prediction=[1.,2,3,3,2,1],prediction_scale=fill("target_scale",6)))
     b=hcat(keys,DataFrame(prediction=[3.,2,1,1,2,3]))
-    blend=rank_blend([a,b];weights=[0.75,0.25])
+    key_cols=(:group_id,:entity_id,:fold_id)
+    group_cols=(:group_id,)
+    blend=rank_blend([a,b];weights=[0.75,0.25],key_cols,group_cols)
     @test nrow(blend)==6
     @test all(blend.prediction_scale.=="dimensionless_rank")
     @test_throws ArgumentError fit_simplex_rank_stack([a,b],df->mean(df.prediction);
-        contract_digest="x",inner_oof=false)
-    stack=fit_simplex_rank_stack([a,b],df->mean(df.prediction);contract_digest="x",inner_oof=true)
+        contract_digest="x",inner_oof=false,key_cols,group_cols)
+    stack=fit_simplex_rank_stack([a,b],df->mean(df.prediction);contract_digest="x",inner_oof=true,key_cols,group_cols)
     @test isapprox(sum(stack.weights),1;atol=1e-10)
     @test all(stack.weights .>= 0)
     @test_throws ArgumentError apply_rank_stack(stack,[a,b];contract_digest="wrong")
     target=hcat(keys,DataFrame(target=collect(1.0:6.0)))
-    @test_throws ArgumentError make_residual_targets(a,target;contract_digest="x")
-    residual=make_residual_targets(a,target;contract_digest="x",inner_oof=true)
-    @test residual.inner_residual_target == target.target .- a.prediction
+    @test_throws ArgumentError make_residual_targets(a,target;contract_digest="x",key_cols)
+    residual=make_residual_targets(a,target;contract_digest="x",inner_oof=true,key_cols)
+    @test residual.residual_target == target.target .- a.prediction
     residual_surface=hcat(keys,DataFrame(prediction=fill(0.1,6),
         prediction_scale=fill("target_scale_residual",6)))
-    corrected=apply_residual_correction(a,residual_surface;contract_digest="x")
+    corrected=apply_residual_correction(a,residual_surface;contract_digest="x",key_cols)
     @test corrected.prediction == a.prediction .+ 0.1
     @test_throws ArgumentError apply_residual_correction(
-        select(a,Not(:prediction_scale)),residual_surface;contract_digest="x")
+        select(a,Not(:prediction_scale)),residual_surface;contract_digest="x",key_cols)
 end
+
+include("generic_contracts.jl")
+include("readme_examples.jl")
+include("attention_regression.jl")

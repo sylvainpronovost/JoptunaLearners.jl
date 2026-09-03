@@ -96,7 +96,10 @@ function JoptunaLearners._backend_batch(::JoptunaLearners.MetalGPU, batch,
     _refresh_batch!(device_batch, batch)
 end
 
-function JoptunaLearners._backend_train_batch(::JoptunaLearners.MetalGPU,
+# NNlib's batched MPS path creates autoreleased native command objects. Bound
+# their lifetime outside the AD region, including when training raises an error.
+# Julia GC or Lux allocation-cache cleanup cannot drain native autorelease pools.
+Metal.@autoreleasepool function JoptunaLearners._backend_train_batch(::JoptunaLearners.MetalGPU,
                                           objective, batch, ts, gradient_clip)
     if ts.model isa JoptunaLearners.NativeArchitecture &&
        ts.model.name === :window_dlinear
@@ -128,7 +131,7 @@ end
 
 JoptunaLearners._backend_times_each_update(::JoptunaLearners.MetalGPU) = false
 
-function JoptunaLearners._backend_predict(::JoptunaLearners.MetalGPU, model, ps, st, input)
+Metal.@autoreleasepool function JoptunaLearners._backend_predict(::JoptunaLearners.MetalGPU, model, ps, st, input)
     dev = _device()
     prediction, _ = model(dev(input), dev(ps), dev(st))
     Metal.synchronize()

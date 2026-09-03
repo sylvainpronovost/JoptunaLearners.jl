@@ -74,6 +74,10 @@ Validation semantics supplied by the application or experiment authority.
 
 `evaluator(predictions, data)` must return one finite scalar. The application owns
 the metric definition; the library does not assume a business domain.
+`metric_id`, `metric_version` and `metric_config` identify the caller's evaluator
+contract; they do not hash or prove the meaning of an arbitrary Julia closure.
+`grouping=()` denotes ungrouped evaluation. Grouping and target labels are metadata:
+the evaluator receives the full data and owns grouping/target access.
 """
 struct ValidationSpec{F}
     name::Symbol
@@ -81,27 +85,52 @@ struct ValidationSpec{F}
     prediction::Symbol
     target::Symbol
     grouping::Tuple{Vararg{Symbol}}
+    metric_id::String
+    metric_version::String
+    metric_config::String
     evaluator::F
     digest::String
 end
 
-function _canonical_contract(name, direction, prediction, target, grouping)
-    join(("metric=" * String(name), "direction=" * String(direction),
-          "prediction=" * String(prediction), "target=" * String(target),
-          "grouping=" * join(String.(grouping), ",")), ";")
+function _contract_encode(value)
+    frame(tag,text) = tag * string(ncodeunits(text)) * ":" * text
+    if value isa NamedTuple || value isa AbstractDict
+        entries = [(String(key), item) for (key,item) in pairs(value)]
+        allunique(first.(entries)) || throw(ArgumentError("metric config keys collide"))
+        sort!(entries;by=first)
+        return frame("map",join(_contract_encode(key)*_contract_encode(item) for (key,item) in entries))
+    elseif value isa Tuple || value isa AbstractVector
+        return frame("seq",join(_contract_encode(item) for item in value))
+    elseif value isa AbstractString || value isa Symbol
+        return frame(value isa Symbol ? "sym" : "str",String(value))
+    elseif value isa Bool || value isa Integer || value isa AbstractFloat
+        isfinite(value) || throw(ArgumentError("metric config must be finite"))
+        return frame(string(typeof(value)),repr(value))
+    elseif value === nothing
+        return "nothing0:"
+    end
+    throw(ArgumentError("metric config must contain strings, symbols, finite numbers, sequences or maps"))
 end
 
-contract_digest(name, direction, prediction, target, grouping) =
-    bytes2hex(sha256(_canonical_contract(name, direction, prediction, target, grouping)))
+function contract_digest(name, direction, prediction, target, grouping;
+                         metric_id=String(name), metric_version="1", metric_config=(;))
+    bytes2hex(sha256(_contract_encode((;schema="validation/v2",name,direction,prediction,target,
+                                      grouping=Tuple(grouping),metric_id=String(metric_id),
+                                      metric_version=String(metric_version),metric_config))))
+end
 
 function ValidationSpec(name::Symbol, evaluator::F; direction::Symbol,
                         prediction::Symbol=:prediction, target::Symbol=:target,
-                        grouping=(:row_id,)) where {F}
+                        grouping=(), metric_id=String(name), metric_version="1",
+                        metric_config=(;)) where {F}
     direction in _VALID_DIRECTIONS || throw(ArgumentError("direction must be :minimize or :maximize"))
     groups = Tuple(Symbol.(grouping))
-    isempty(groups) && throw(ArgumentError("grouping must not be empty"))
-    digest = contract_digest(name, direction, prediction, target, groups)
-    ValidationSpec{F}(name, direction, prediction, target, groups, evaluator, digest)
+    allunique(groups) || throw(ArgumentError("grouping columns must be unique"))
+    isempty(metric_id) && throw(ArgumentError("metric_id must not be empty"))
+    isempty(metric_version) && throw(ArgumentError("metric_version must not be empty"))
+    digest = contract_digest(name, direction, prediction, target, groups;metric_id,metric_version,metric_config)
+    ValidationSpec{F}(name, direction, prediction, target, groups, String(metric_id),
+                     String(metric_version),_contract_encode(metric_config),evaluator,digest)
 end
 
 contract_digest(spec::ValidationSpec) = spec.digest

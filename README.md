@@ -32,36 +32,35 @@ The package is designed to compose with:
 ## Quick start
 
 ```julia
-using Pkg
-Pkg.develop(path="../JoptunaLearners.jl")
-
 using JoptunaLearners
+using Random
 
-X = randn(Float32, 4, 256)
+X = randn(MersenneTwister(7), Float32, 4, 256)
 y = vec(0.7f0 .* X[1, :] .- 0.2f0 .* X[2, :])
 data = LearnerData(X, y)
 
 validation = ValidationSpec(
     :mse,
-    (prediction, heldout) -> sum(abs2, prediction .- heldout.y) / length(prediction);
+    (prediction, heldout) -> sum(abs2, prediction .- heldout.target) / length(prediction);
     direction=:minimize,
     prediction=:prediction,
     target=:target,
-    grouping=(:row,),
+    metric_id="example/mse", metric_version="1", grouping=(),
 )
 
 learner = LuxLearner(
     :mlp;
     training=TrainingSpec(epochs=10, batch_size=32, seed=7),
 )
-fitted = fit(learner, data; validation=(data=data, spec=validation))
+fitted = fit(learner, data[1:192]; validation, validation_data=data[193:256])
 prediction = predict(fitted, data)
 report = training_report(fitted)
 ```
 
 Applications own dataset construction, split geometry, metric semantics, experiment artifacts,
 and final evaluation. JoptunaLearners consumes an explicit `ValidationSpec` and carries its digest
-through training so early stopping, pruning adapters, and reports cannot silently disagree.
+through training so consumers can reject inconsistent declared contracts. The evaluator remains
+caller-owned: the digest does not inspect a closure or prove correct target selection.
 
 ## Execution backends
 
