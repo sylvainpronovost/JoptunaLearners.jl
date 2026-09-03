@@ -3,6 +3,14 @@
 Start with the [current coordinated stack status](../Joptuna.jl/docs/src/current-status.md).
 Earlier sections below remain dated evidence, not certification of a later dependency pin.
 
+## Committed-stack consolidation — 2026-09-02
+
+At `80ab60e`, the full core suite passed 319 assertions. Focused Reactant CPU controls
+passed 10 assertions; Metal controls passed 22, including the 12 native-resource checks.
+Strict executable docs passed. These focused reruns do not replace or pretend to repeat
+the full model-zoo and large-attention campaigns below. The development branch has been
+fast-forwarded into local `main`; its history and existing worktrees remain preserved.
+
 This is a local, unregistered reconstruction; no hosted run for this repository is claimed.
 Historical benchmark/campaign files and abbreviated revision identifiers are retained as
 inherited evidence, not current-source certification or checkout instructions. Historical
