@@ -2,9 +2,6 @@
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 JoptunaLearners = "e39f4708-7365-453b-ad0a-0a7053546b65"
 
-[sources]
-JoptunaLearners = {path = ".."}
-
 [compat]
 Documenter = "1"
 julia = "1.12"

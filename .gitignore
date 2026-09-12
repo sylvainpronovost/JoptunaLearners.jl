@@ -1,8 +1,8 @@
 /Manifest.toml
 /docs/Manifest.toml
 /docs/build/
+/qualification/Manifest.toml
 /test/*/Manifest.toml
-/docs/build/
 /coverage/
 /benchmark/execution_backends/results/
 /test/accelerators/*.log
