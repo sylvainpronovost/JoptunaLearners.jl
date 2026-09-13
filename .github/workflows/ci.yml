@@ -56,9 +56,12 @@ jobs:
         run: julia --startup-file=no -e 'using Pkg; Pkg.Registry.add("General")'
       - name: Run ecosystem contracts in isolated environments
         run: |
-          julia --project=test/learnapi --startup-file=no -e 'using Pkg; Pkg.develop(path="."); Pkg.instantiate(); include("test/learnapi/runtests.jl")'
-          julia --project=test/mlj --startup-file=no -e 'using Pkg; Pkg.develop(path="."); Pkg.instantiate(); include("test/mlj/runtests.jl")'
-          julia --project=test/flux --startup-file=no -e 'using Pkg; Pkg.develop(path="."); Pkg.instantiate(); include("test/flux/runtests.jl")'
+          julia --project=test/learnapi --startup-file=no -e 'using Pkg; Pkg.develop(path="."); Pkg.instantiate()'
+          julia --project=test/learnapi --startup-file=no test/learnapi/runtests.jl
+          julia --project=test/mlj --startup-file=no -e 'using Pkg; Pkg.develop(path="."); Pkg.instantiate()'
+          julia --project=test/mlj --startup-file=no test/mlj/runtests.jl
+          julia --project=test/flux --startup-file=no -e 'using Pkg; Pkg.develop(path="."); Pkg.instantiate()'
+          julia --project=test/flux --startup-file=no test/flux/runtests.jl
 
   reactant-cpu:
     name: Reactant CPU DLinear gate
@@ -92,9 +95,9 @@ jobs:
           version: '1.12'
       - uses: julia-actions/cache@a7bed9df697e5d7309d68afe7542a87621a8b6c8
       - name: Build warning-free documentation
-        run: >-
-          julia --project=docs --startup-file=no -e 'using Pkg;
-          Pkg.develop(path="."); Pkg.instantiate(); include("docs/make.jl")'
+        run: |
+          julia --project=docs --startup-file=no -e 'using Pkg; Pkg.develop(path="."); Pkg.instantiate()'
+          julia --project=docs --startup-file=no docs/make.jl
 
   required-qualification:
     name: Required qualification
