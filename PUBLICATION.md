@@ -26,8 +26,8 @@ in the Git archive. Never add private recovery bundles to a publication reposito
 
 The September 2026 sanitation establishes fresh publication history. Earlier local histories
 are retained only in a private recovery location outside this repository. No legacy API alias
-is promised. No remote publication, package-version change, registry submission, or license
-grant is part of this increment.
+is promised. The Public Preview line is MIT-licensed at version 0.1.0; tags and General-registry
+submission remain separate release actions.
 
 ## Neutral learner contracts
 

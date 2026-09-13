@@ -50,5 +50,5 @@ See [architecture ledger](model-ledger.md), [ownership and contracts](ownership.
 [MLJ integration](mlj.md). The primary LearnAPI contract is exercised by LearnTestAPI; the direct
 MLJModelInterface adapter and optional Flux adapter are qualified in isolated environments.
 
-Until registration, develop the package from its local checkout and retain resolved revisions in
-reproducible application manifests.
+Until registration, add the package from its public repository URL and retain resolved revisions
+in reproducible application manifests.

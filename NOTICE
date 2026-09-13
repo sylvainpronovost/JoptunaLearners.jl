@@ -1,0 +1,10 @@
+JoptunaLearners.jl
+Copyright (c) 2026 Sylvain Pronovost
+
+Licensed under the MIT License; see `LICENSE`.
+
+This package is independently maintained. It uses public Julia APIs from Lux, MLJ, LearnAPI,
+JLD2, Optimisers, Zygote, and its optional Reactant, Enzyme, Metal, and Flux backends. Those
+projects remain copyright their respective authors and are distributed under their own licenses.
+JoptunaLearners is not affiliated with or endorsed by the Optuna project or Preferred Networks,
+Inc.

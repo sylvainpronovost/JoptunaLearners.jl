@@ -75,4 +75,5 @@ system, or Python compatibility layer. It never imports or launches Python. See
 [`docs/src/index.md`](docs/src/index.md) for the ownership model, training lifecycle, MLJ adapter,
 hybrid primitives, execution backends, and model ledger.
 
-Licensing and registry publication remain pending owner review.
+JoptunaLearners is distributed under the [MIT License](LICENSE). Until registry publication,
+install it with `Pkg.add(url="https://github.com/sylvainpronovost/JoptunaLearners.jl")`.
